@@ -1,46 +1,56 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
-
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int        @id @default(autoincrement())
+  email       String     @unique
+  name        String
+  password    String
+  roleId      Int
+  dispensaryId Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  @@map("users")
+  role        Role       @relation(fields: [roleId], references: [id])
+  dispensary  Dispensary @relation(fields: [dispensaryId], references: [id])
+  auditLogs   AuditLog[]
 }
 
-model ComplianceRecord {
-  id          String   @id @default(cuid())
-  userId      String
-  type        String
-  status      String
-  dueDate     DateTime
-  completedAt DateTime
-  notes       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@map("compliance_records")
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
 }
 
-enum Role {
-  USER
-  ADMIN
-  COMPLIANCE_OFFICER
+model Dispensary {
+  id      Int    @id @default(autoincrement())
+  name    String
+  license String @unique
+  users   User[]
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  action    String
+  ipAddress  String?   // optional in case we can't capture it
+  userAgent  String?   // browser or client info
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([userId, timestamp])
+  @@index([ipAddress])
 }

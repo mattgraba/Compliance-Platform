@@ -1,23 +1,26 @@
+// middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
 
-export const protect = (req, res, next) => {
-  let token = req.headers.authorization?.split(" ")[1];
+export const authenticate = (req, res, next) => {
+  const header = req.headers["authorization"];
+  if (!header) return res.status(401).json({ error: "No token provided" });
 
-  if (!token) return res.status(401).json({ message: "Not authorized, no token" });
+  const token = header.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Invalid token format" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // contains { id, role }
+    req.user = decoded; // { userId, role }
     next();
   } catch (err) {
-    res.status(401).json({ message: "Not authorized, token failed" });
+    res.status(401).json({ error: "Invalid token" });
   }
 };
 
-export const requireRole = (role) => {
+export const authorize = (...roles) => {
   return (req, res, next) => {
-    if (req.user?.role !== role) {
-      return res.status(403).json({ message: "Forbidden: insufficient role" });
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Forbidden" });
     }
     next();
   };

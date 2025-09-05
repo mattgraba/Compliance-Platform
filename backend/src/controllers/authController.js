@@ -1,48 +1,72 @@
-import bcrypt from "bcrypt";
-import prisma from "../../config/database.js";
-import { generateToken } from "../utils/generateToken.js";
+// controllers/authController.js
+import prisma from "../lib/prisma.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { logAction } from "../utils/auditLogger.js";
 
-export const registerUser = async (req, res) => {
-  const { email, password, role } = req.body;
-
+export const register = async (req, res) => {
   try {
-    const userExists = await prisma.user.findUnique({ where: { email } });
-    if (userExists) return res.status(400).json({ message: "User already exists" });
+    const { email, password, name, roleId, dispensaryId } = req.body;
 
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) return res.status(400).json({ error: "User already exists" });
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: { email, password: hashedPassword, role },
+    // Create new user
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+        role: { connect: { id: roleId } },
+        dispensary: dispensaryId ? { connect: { id: dispensaryId } } : undefined,
+      },
+      include: { role: true },
     });
 
-    res.status(201).json({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id, user.role),
-    });
+    // Log the action
+    await logAction(req.user?.userId ?? newUser.id, `Registered user ${newUser.email}`);
+    
+    res.status(201).json({ message: "User created", user: newUser });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
-export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
+export const login = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const { email, password } = req.body;
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid credentials" });
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id, user.role),
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
     });
+    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+
+    // Check password
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ error: "Invalid credentials" });
+
+    // Sign JWT
+    const token = jwt.sign(
+      { userId: user.id, role: user.role.name },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Log the action
+    await logAction(user.id, `Logged in`);
+
+    res.json({ token });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };
