@@ -41,16 +41,66 @@ model Dispensary {
   users   User[]
 }
 
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  action    String
-  ipAddress  String?   // optional in case we can't capture it
-  userAgent  String?   // browser or client info
-  timestamp DateTime @default(now())
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  SYNC
+  BULK_UPDATE
+}
 
-  @@index([timestamp])
-  @@index([userId, timestamp])
-  @@index([ipAddress])
+enum AuditResult {
+  SUCCESS
+  FAILURE
+  DENIED
+  PARTIAL
+  QUEUED
+  RETRY
+}
+
+enum LogSource {
+  WEB
+  API
+  MOBILE
+  WORKER
+  CRON
+  WEBHOOK
+  INTEGRATION_METRC
+  INTEGRATION_ISOLOCITY
+}
+
+model AuditLog {
+  id            Int       @id @default(autoincrement())
+  timestamp     DateTime  @default(now())
+  userId        Int?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  action        AuditAction
+  entityType    String    @db.VarChar(40) // or enum if stable
+  entityId      String    @db.VarChar(64) // UUID/GUID/external ID
+
+  result        AuditResult
+  error         Json?
+
+  before        Json?
+  after         Json?
+
+  ipAddress     String?   @db.Inet
+  userAgent     String?   @db.Text
+  source        LogSource
+
+  tenantId      Int
+  correlationId String?   @db.Uuid
+
+  @@index([tenantId, timestamp])
+  @@index([entityType, entityId, timestamp])
+  @@index([action, timestamp])
+  @@index([result, timestamp])
 }
