@@ -15,17 +15,26 @@ export async function listAuditLogs(req: AuthedRequest, res: Response) {
     // 1) Validate inputs
     const q = auditQuerySchema.parse(req.query);
 
-    // 2) Build Prisma filters
-    // Starts w/ an empty object & conditionally adds fields so we only filter on provided knobs
-    const where: any = {};                                                      // Why any? Quick way to allow conditional shape building; could define a typed [Prisma.AuditLogWhereInput] for stricter typing
-    if (q.ip) where.ipAddress = { contains: q.ip, mode: "insensitive" };        // case-insensitive substring match (good for partial IPs or action names)
-    if (q.action) where.action = { contains: q.action, mode: "insensitive" };
+    // Build where
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (q.userId) where.userId = q.userId;
+    if (q.ip) where.ipAddress = q.ip;                           // exact match for inet
+    if (q.action) where.action = q.action;                      // enum
+    if (q.result) where.result = q.result;                      // enum
+    if (q.source) where.source = q.source;                      // enum
     if (q.entityType) where.entityType = q.entityType;
     if (q.entityId) where.entityId = q.entityId;
+    if (q.correlationId) where.correlationId = q.correlationId;
+
+    if (q.hasError !== undefined) {
+      where.error = q.hasError ? { not: null } : null;
+    }
+
     if (q.from || q.to) {
       where.timestamp = {};
-      if (q.from) where.timestamp.gte = new Date(q.from);                       // date range filtering; uses inclusive bounds
-      if (q.to) where.timestamp.lte = new Date(q.to);
+      if (q.from) where.timestamp.gte = new Date(q.from);
+      if (q.to)   where.timestamp.lte = new Date(q.to);
     }
 
     // RBAC/tenant scoping
@@ -66,10 +75,12 @@ export async function listAuditLogs(req: AuthedRequest, res: Response) {
 
     // Response shape
     res.json({
-      page: q.page,         // which page
-      limit: q.limit,       // how many per page
-      total,                // total matching rows (for building page controls)
-      rows,                 // current page's rows
+      page: q.page,                             // which page
+      limit: q.limit,                           // how many per page
+      total,                                    // total matching rows (for building page controls)
+      rows,                                     // current page's rows
+      hasNext: q.page * q.limit < total,
+      hasPrev: q.page > 1,
     });
   } catch (err) {
     if (err instanceof ZodError) {

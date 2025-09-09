@@ -43,28 +43,44 @@ model Dispensary {
 
 model AuditLog {
   id            Int       @id @default(autoincrement())
-  timestamp     DateTime  @default(now())
+  tenantId      Int
   userId        Int?
   user          User?     @relation(fields: [userId], references: [id])
 
-  action        AuditAction
-  entityType    String    @db.VarChar(40) // or enum if stable
-  entityId      String    @db.VarChar(64) // UUID/GUID/external ID
 
-  result        AuditResult
-  error         Json?
+  // What happened
+  action        AuditAction                                                       // e.g. "CREATE","UPDATE","DELETE","LOGIN","EXPORT"
+  entityType    String    @db.VarChar(40) // or enum if stable                    // e.g. "Product","Batch","Order","User","License"
+  entityId      String    @db.VarChar(64) // UUID/GUID/external ID                
+  result        AuditResult                                                       // "SUCCESS" | "FAIL"
+  error         Json?                                                             // message if FAIL; keep brief, details in before/after diff if needed
 
+
+  // Before/After as JSON allows storing rich diffs/snapshots without schema churn
   before        Json?
   after         Json?
 
+
+  // Request context
+  timestamp     DateTime  @default(now())
   ipAddress     String?   @db.Inet
   userAgent     String?   @db.Text
   source        LogSource
 
-  tenantId      Int
+
+  // Free-form metadata (labels, tags, reason, etc.)
+  meta         Json?
+
   correlationId String?   @db.Uuid
 
-  @@index([tenantId, timestamp])  // <-- crucial for tenant-scoped pagination
+
+  // Most often will slice by tenant + time, tenant + action, tenant + entity, or tenant + user
+  @@index([tenantId, timestamp(sort: Desc)])                                      // <-- crucial for tenant-scoped pagination
+  @@index([tenantId, action, timestamp(sort: Desc)])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, userId, timestamp(sort: Desc)])
+  @@index([requestId])
+
   @@index([entityType, entityId, timestamp])
   @@index([action, timestamp])
   @@index([result, timestamp])
