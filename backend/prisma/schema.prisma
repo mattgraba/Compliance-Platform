@@ -41,6 +41,35 @@ model Dispensary {
   users   User[]
 }
 
+model AuditLog {
+  id            Int       @id @default(autoincrement())
+  timestamp     DateTime  @default(now())
+  userId        Int?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  action        AuditAction
+  entityType    String    @db.VarChar(40) // or enum if stable
+  entityId      String    @db.VarChar(64) // UUID/GUID/external ID
+
+  result        AuditResult
+  error         Json?
+
+  before        Json?
+  after         Json?
+
+  ipAddress     String?   @db.Inet
+  userAgent     String?   @db.Text
+  source        LogSource
+
+  tenantId      Int
+  correlationId String?   @db.Uuid
+
+  @@index([tenantId, timestamp])  // <-- crucial for tenant-scoped pagination
+  @@index([entityType, entityId, timestamp])
+  @@index([action, timestamp])
+  @@index([result, timestamp])
+}
+
 enum AuditAction {
   CREATE
   READ
@@ -74,33 +103,4 @@ enum LogSource {
   WEBHOOK
   INTEGRATION_METRC
   INTEGRATION_ISOLOCITY
-}
-
-model AuditLog {
-  id            Int       @id @default(autoincrement())
-  timestamp     DateTime  @default(now())
-  userId        Int?
-  user          User?     @relation(fields: [userId], references: [id])
-
-  action        AuditAction
-  entityType    String    @db.VarChar(40) // or enum if stable
-  entityId      String    @db.VarChar(64) // UUID/GUID/external ID
-
-  result        AuditResult
-  error         Json?
-
-  before        Json?
-  after         Json?
-
-  ipAddress     String?   @db.Inet
-  userAgent     String?   @db.Text
-  source        LogSource
-
-  tenantId      Int
-  correlationId String?   @db.Uuid
-
-  @@index([tenantId, timestamp])
-  @@index([entityType, entityId, timestamp])
-  @@index([action, timestamp])
-  @@index([result, timestamp])
 }
