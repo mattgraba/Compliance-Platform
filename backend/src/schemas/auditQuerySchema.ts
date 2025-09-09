@@ -33,9 +33,12 @@ export const auditQuerySchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 
-  // payload controls
-  includeBeforeAfter: z.coerce.boolean().default(false),
-  hasError: z.coerce.boolean().optional(), // true => error != null, false => error is null
+  // Payload Controls: *What extra data to include or filter* in the actual audit log records returned to the client.
+  includeBeforeAfter: z.coerce.boolean().default(false),    // Control whether query should return the *"before" and "after" snapshots* of the entity involved in the audit log
+  hasError: z.coerce.boolean().optional(),                  // true => error != null, false => error is null
+  // ^ Audit logs often include a field like [error]: 1) [null] if everything succeeded. 2) A string or JSON object describing what went wrong if it failed
+  // How it works: If True -> return only logs where [error != null]. False -> logs where [error == null]. If hasError is omitted -> don't filter by error at all.
+
 
   // [.refine()] Ensures that [from] isn't later than [to]
 }).refine((q) => !(q.from && q.to) || new Date(q.from) <= new Date(q.to), {
