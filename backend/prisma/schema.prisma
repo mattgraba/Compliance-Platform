@@ -13,6 +13,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Tenant {
+  id        Int       @id @default(autoincrement())
+  name      String
+  users     User[]
+  auditLogs AuditLog[]
+}
+
 model User {
   id          Int        @id @default(autoincrement())
   email       String     @unique
@@ -66,6 +73,8 @@ model AuditLog {
   ipAddress     String?   @db.Inet
   userAgent     String?   @db.Text
   source        LogSource
+  beforeRef     String?
+  afterRef      String?
 
 
   // Free-form metadata (labels, tags, reason, etc.)
