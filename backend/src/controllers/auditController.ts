@@ -5,7 +5,7 @@ import prisma from "../lib/prisma";
 import { auditQuerySchema } from "../schemas/auditQuerySchema";                 // defines/validates/normalizes the allowed query parameters (page, limit, sort, filters)
 import { Prisma } from "@prisma/client";
 
-
+// TypeScript type augmentation: extends Express's request type with authentication info, so req.user can safely be used in controllers w/o TypeScript errors
 type AuthedRequest = Request & {
   user?: { id: number; roles?: string[]; tenantId?: number };
 };
@@ -42,9 +42,7 @@ export async function listAuditLogs(req: AuthedRequest, res: Response) {
 
       // Build a time range using gte/lte. Time window: [timestamp: {gte: from, lte: to} (inclusive endpoints)
       // Add a timestamp range only when from/to exist, using validated ISO dates
-      ...(q.from || q.to
-        ? {
-            timestamp: {
+      ...(q.from || q.to ? { timestamp: {
               ...(q.from ? { gte: new Date(q.from) } : {}),
               ...(q.to ? { lte: new Date(q.to) } : {}),
             },
@@ -64,17 +62,27 @@ export async function listAuditLogs(req: AuthedRequest, res: Response) {
     // Keys come from whitelist (zod enum) 
     // Direction comes from a whitelist ("asc" | "desc")
     // Add a secondary key like {id : "desc"} for stabilitiy
-    const orderBy: Prisma.AuditLogOrderByWithRelationInput = {
-      [q.sort]: q.order, // safe because zod restricted keys/values
-    };
+    const orderBy: Prisma.AuditLogOrderByWithRelationInput[] = [
+      { [q.sort]: q.order }, // safe because zod restricted keys/values
+      { id: "desc" },        // fallback for stable ordering
+    ];
 
 
-    // 5) Pagination (offset)
-    // Offset Pagination: [skip] jumps over (page - 1) * limit rows; [take] returns limit rows
-    const page = q.page;
-    const limit = q.limit;
-    const skip = (page - 1) * limit;
-    const take = limit;
+    // 5) Pagination (Cursor): breaking up a huge dataset into smaller "pages" of results
+    // Cursor Pagination: "Give me the next 20 results starting after this specific item"
+    prisma.auditLog.findMany({
+      where,               
+      orderBy,                                                    // passing [where] object into findMany()
+      take: q.limit,                                              // how many records to fetch (positive = forward, negative = backward)
+      skip: q.cursor ? 1 : 0,                                     // how many to skip (always 1 when using a cursor, to skip the cursor item itself)
+      orderBy,
+      cursor: q.cursor ? { id: Number(q.cursor) } : undefined,    // the position to start after (usually [id] of the last record from the previous page)
+      select,
+    });
+
+    const nextCursor = results.length > 0 
+      ? results[results.length - 1].id 
+      : null;
 
 
     // 6) SELECT shape (toggle before/after; add small user projection)
@@ -145,6 +153,7 @@ export async function listAuditLogs(req: AuthedRequest, res: Response) {
       prevPage,
       sort: q.sort,
       order: q.order,
+      nextCursor
       // echo filters the client might want to show as "active filters"
       filters: {
         userId: q.userId ?? null,
