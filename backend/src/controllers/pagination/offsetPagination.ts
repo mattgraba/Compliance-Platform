@@ -1,4 +1,5 @@
-// controllers/auditController.ts
+// controllers/paginationMethods/offsetPagination.ts
+
 import { z } from "zod";
 import prisma from "../../lib/prisma";
 
