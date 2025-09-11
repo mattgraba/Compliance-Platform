@@ -1,13 +1,25 @@
-# Add a new filter (e.g., `actionCategory`)
+# Recipe: Adding a New AuditLog Filter
 
-1. Schema: update auditQuerySchema (union/enum, optional).
+## Purpose
+Extend the AuditLogs endpoint to support a new filter (e.g., `actionCategory`).
 
-2. WHERE builder: add conditional mapping in buildAuditWhere.
+---
 
-3. Index: consider composite index to keep queries fast.
+## Steps
 
-4. Tests: unit (schema parse), integration (controller), seed coverage.
+### 1. Schema
+- Update `auditQuerySchema` (Zod):
+  - Add the new filter key.
+  - If it’s an enum, restrict to known values.
+  - Make it optional.
 
-5. Docs: add to this Tour (params table) and to API reference.
+### 2. WHERE Builder
+- In `buildAuditWhere()`:
+  - Map the new query param into the Prisma `where` clause.
+  - Ensure you handle `undefined` safely (conditional spread).
 
-6. Dashboards: update panels if filter affects cardinality.
+### 3. Index (if needed)
+- Update `schema.prisma` with a composite index if query performance depends on this filter.  
+  Example:
+  ```prisma
+  @@index([tenantId, actionCategory, createdAt, id])
