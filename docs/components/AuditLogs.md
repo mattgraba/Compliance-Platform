@@ -31,14 +31,14 @@ model AuditLog {
 ### Constraints
 - `action`: enum of allowed strings (CREATE, UPDATE, DELETE).
 - `details`: must always include entity + entityId.
- - Example:
-  ```json
-  {
+    - Example:
+    ```json
+    {
     "entity": "Order",
     "entityId": "ORD-2025-0001",
     "changes": { "status": ["Pending", "Fulfilled"] }
-  }
-  ```
+    }
+    ```
 - `ipAddress`: nullable, but must be present for external requests.
 
 ---
@@ -132,9 +132,9 @@ const where: Prisma.AuditLogWhereInput = {
 
 ## Recipes
 
-- [Adding a new filter](./Adding-AuditLog-Filter.md)
-- [Adding a new DB index](./Adding-DB-Index.md)
-- [Adding a new role](./Adding-Role.md)
+- [Adding a new filter](../recipes/Adding-AuditLog-Filter.md)
+- [Adding a new DB index](../recipes/Adding-DB-Index.md)
+- [Adding a new role](../recipes/Adding-Role.md)
 
 ---
 
