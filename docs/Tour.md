@@ -4,6 +4,8 @@
 # 10-Minute Tour
 > Who this is for: new contributors and Future Me. Start here.
 
+---
+
 ## 1) Context Diagram (runtime data flow)
 
 Client (Web/CLI)
