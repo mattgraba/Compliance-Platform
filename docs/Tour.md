@@ -1,4 +1,5 @@
-# System Tour (system flow and how to navigate code): This is the single entry point for “what lives where” and “how one real request flows through the system.” Keep it short, visual, and operational (links to code, dashboards, tests).
+# System Tour
+#### (system flow and how to navigate code): This is the single entry point for “what lives where” and “how one real request flows through the system.” Keep it short, visual, and operational (links to code, dashboards, tests).
 
 # 10-Minute Tour
 > Who this is for: new contributors and Future Me. Start here.
