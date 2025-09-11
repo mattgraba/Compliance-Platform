@@ -1,0 +1,6 @@
+{
+    "scripts": {
+      "lint:docs": "bash scripts/check-docs.sh"
+    }
+  }
+  
