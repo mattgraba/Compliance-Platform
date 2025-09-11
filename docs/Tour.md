@@ -43,44 +43,40 @@ Client (Web/CLI)
 ```http
 GET /audit-logs?entity=Order&action=UPDATE&limit=20&sort=createdAt&order=desc
 Authorization: Bearer <JWT>
+```
 
-### Pseudocode:
+## Key Invariants
+- Tenant isolation: non-SuperAdmins always tenant-scoped.
+- Pages are deterministic: tie-break with `id desc`.
+- Limit: 1–100 (default 20).
+- Redaction: see [redactAuditLog.ts](../server/src/lib/audit/redact.ts).
+- Errors: ZodError → 400, Tenant violations → 403, Unexpected → 500.
 
-const q = auditQuerySchema.parse(req.query);
-guardAuth(req.user);
+## Common Recipes (summary)
+- Add a new filter → update schema, where-builder, tests, dashboards.  
+  See [Adding-AuditLog-Filter.md](recipes/Adding-AuditLog-Filter.md).  
+- Add a DB index → update schema, migrate, verify.  
+  See [Adding-DB-Index.md](recipes/Adding-DB-Index.md).  
+- Add a role → extend `roles.ts`, update RBAC matrix.  
+  See [Adding-Role.md](recipes/Adding-Role.md).  
+- Add a log field → schema + migration, update redact list, dashboards.  
+  See [Adding-Log-Field.md](recipes/Adding-Log-Field.md).
 
-const where = buildAuditWhere(q, req.user);
-const orderBy = [{ [q.sort]: q.order }, { id: "desc" }];
+## RBAC Matrix (quick reference)
+| Role       | List | Create | Delete | Tenant Scope | Notes          |
+|------------|------|--------|--------|--------------|----------------|
+| SuperAdmin | ✔    | ✔      | ✔      | None         | Full access    |
+| Admin      | ✔    | ✔      | ✖      | Required     | No cross-tenant|
+| Manager    | ✔    | ✖      | ✖      | Required     |                |
+| Auditor    | ✔    | ✖      | ✖      | Required     | Read-only      |
 
-const items = await prisma.auditLog.findMany({
-  where,
-  orderBy,
-  take: q.limit,
-  cursor: q.cursor ? { id: Number(q.cursor) } : undefined,
-  skip: q.cursor ? 1 : 0,
-});
-
-const safeItems = items.map(redactAuditLog(req.user));
-const nextCursor = items.length === q.limit ? String(items.at(-1)!.id) : undefined;
-
-res.json({ items: safeItems, nextCursor, hasMore: Boolean(nextCursor) });
-
-### Response (example):
-
-{
-  "items": [
-    {
-      "id": 981231,
-      "tenantId": 42,
-      "timestamp": "2025-09-10T15:45:30.123Z",
-      "actor": { "id": 7, "role": "Manager" },
-      "entity": "Order",
-      "entityId": "ORD-2025-0001",
-      "action": "UPDATE",
-      "ipAddress": "REDACTED",
-      "diff": { "status": ["Processing", "Fulfilled"] }
-    }
-  ],
-  "nextCursor": "981230",
-  "hasMore": true
-}
+## Links
+- [AuditLogs.md](components/AuditLogs.md)
+- [auditController.ts](../server/src/controllers/auditController.ts)
+- [auditService.ts](../server/src/services/auditService.ts)
+- [auditQuerySchema.ts](../server/src/schemas/auditQuerySchema.ts)
+- [roles.ts](../server/src/lib/auth/roles.ts)
+- [redact.ts](../server/src/lib/audit/redact.ts)
+- [audit tests](../server/tests/audit)
+- [dashboards](../ops/grafana/audit-logs.json)
+- [runbook](runbooks/audit-logs.md)
