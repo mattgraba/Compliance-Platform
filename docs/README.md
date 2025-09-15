@@ -8,7 +8,25 @@ This directory is the **source of truth** for architecture, components, operatio
 
 ## 🗺️ Orientation
 - [Tour.md](./Tour.md) → 10-minute guided walkthrough (system diagram, request flow, common recipes).
-- [Glossary.md](./Glossary.md) → Definitions of domain terms, acronyms, and concepts.
+- [Glossary.md](./Glossary.md) → Domain terms, acronyms, and concepts.
+- For deeper explanations, see [Concepts](./concepts/index.md).  
+- For design decisions, see [Architecture](./architecture/).
+
+---
+
+## 🧠 Concepts
+High-level explanations of the what/why/how of compliance features:
+- [Audit Logs (Concepts)](./concepts/audit-logs.md)
+- RBAC (coming soon)
+- CAPA (coming soon)
+
+---
+
+## 🏗️ Architecture
+System-level design docs, diagrams, and ADRs:
+- [System Context](./architecture/01-context-diagram.md)
+- [E2E Flow](./architecture/02-e2e-flow.md)
+- [ADR Index](./architecture/adr/)
 
 ---
 

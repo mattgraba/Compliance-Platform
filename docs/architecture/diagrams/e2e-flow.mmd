@@ -1,0 +1,138 @@
+flowchart TD
+  %% Roles (for labels on edges)
+  classDef gate fill:#f7f4d7,stroke:#c9b458,stroke-width:1px,color:#222;
+  classDef sys fill:#eef5ff,stroke:#6a9ce1,stroke-width:1px,color:#222;
+  classDef xcut fill:#f0eaff,stroke:#a17ee6,stroke-width:1px,color:#222;
+  classDef record fill:#fff4f0,stroke:#e39b7b,stroke-width:1px,color:#222;
+
+  %% Cross-cutting controls
+  RBAC([RBAC]):::xcut
+  AUD([Audit Logs]):::xcut
+  CAPA([Deviation & CAPA]):::xcut
+  SOP([SOP Change Mgmt]):::xcut
+  TRAIN([Training/Certs]):::xcut
+  RULES([State Rule Engine]):::xcut
+  ESG([Environmental/ESG]):::xcut
+
+  %% Systems
+  CC[Compliance Core]:::sys
+  ERP[ERP / Seed-to-Sale]:::sys
+  LIMS[LIMS]:::sys
+  POS[Point of Sale]:::sys
+
+  %% Records/Outputs
+  COA[(Certificate of Analysis)]:::record
+  Deviation[(Deviation Report)]:::record
+  CAPATask[(CAPA Task)]:::record
+  BPR[(Batch Production Record)]:::record
+  InvAdj[(Inventory Adjustment Log)]:::record
+  Trx[(Regulatory Transaction)]:::record
+  ESGRpt[(Env/ESG Report)]:::record
+
+  %% Stage 1: Cultivation
+  subgraph S1[ Cultivation ]
+    direction LR
+    Planting[Planting & Tagging]
+    Veg[Veg/Flower Tracking]
+    Harvest[Harvest Batching]
+    Gate1{{Gate: Harvest Compliance Checks}}:::gate
+  end
+
+  %% Stage 2: Processing
+  subgraph S2[ Processing ]
+    direction LR
+    Intake[Raw Intake & Weights]
+    Extract[Extraction/Manufacturing]
+    Pack[Packaging & Labeling]
+    Gate2{{Gate: Label/Packaging Compliance}}:::gate
+  end
+
+  %% Stage 3: Testing
+  subgraph S3[ Testing ]
+    direction LR
+    Sample[Sampling & Chain of Custody]
+    LabTest[Laboratory Analysis]
+    Review[QA Review]
+    Gate3{{Gate: COA & Release Decision}}:::gate
+  end
+
+  %% Stage 4: Distribution
+  subgraph S4[ Distribution ]
+    direction LR
+    Manifest[Create Transfer Manifest]
+    Ship[Transport & Reconciliation]
+    Gate4{{Gate: Transfer Compliance}}:::gate
+  end
+
+  %% Stage 5: Retail
+  subgraph S5[ Retail ]
+    direction LR
+    Receive[Receive Inventory]
+    Sell[POS Sale & ID Checks]
+    Gate5{{Gate: Sale Compliance}}:::gate
+  end
+
+  %% Core flows
+  Planting --> Veg --> Harvest --> Gate1
+  Gate1 --> Intake
+  Intake --> Extract --> Pack --> Gate2
+  Gate2 --> Sample --> LabTest --> Review --> Gate3
+  Gate3 --> Manifest --> Ship --> Gate4
+  Gate4 --> Receive --> Sell --> Gate5
+
+  %% Gate outcomes & records
+  Gate1 --> BPR
+  Gate1 --> ERP
+
+  Gate2 --> InvAdj
+  Gate2 --> ERP
+
+  Gate3 --> COA
+  Gate3 --> CC
+
+  Gate4 --> Trx
+  Gate4 --> ERP
+
+  Gate5 --> POS
+  Gate5 --> Trx
+
+  %% Cross-cutting hooks at every gate
+  Gate1 -.policy-> RULES
+  Gate2 -.policy-> RULES
+  Gate3 -.policy-> RULES
+  Gate4 -.policy-> RULES
+  Gate5 -.policy-> RULES
+
+  Gate1 -.role-> RBAC
+  Gate2 -.role-> RBAC
+  Gate3 -.role-> RBAC
+  Gate4 -.role-> RBAC
+  Gate5 -.role-> RBAC
+
+  Gate1 -.log-> AUD
+  Gate2 -.log-> AUD
+  Gate3 -.log-> AUD
+  Gate4 -.log-> AUD
+  Gate5 -.log-> AUD
+
+  %% Deviations & CAPA
+  Gate3 -- "Fail potency/contaminant" --> Deviation --> CAPATask --> CAPA
+  Gate2 -- "Label error" --> Deviation
+  Gate5 -- "ID mismatch" --> Deviation
+  Deviation -.tracked in.-> CC
+  CAPATask -.assigned via.-> CC
+
+  %% SOP & Training checks (change mgmt)
+  Gate2 -. "Enforce SOP version on step" .-> SOP
+  Gate3 -. "Lab SOP & method rev" .-> SOP
+  Gate5 -. "Budtender training valid?" .-> TRAIN
+
+  %% Environmental/ESG reporting taps
+  Extract -. "solvent usage, waste" .-> ESG --> ESGRpt
+  Ship -. "fuel, emissions" .-> ESG
+
+  %% System integrations
+  Sample --> LIMS
+  LabTest --> LIMS --> COA
+  CC <---> ERP
+  CC <---> POS

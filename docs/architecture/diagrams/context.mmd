@@ -1,0 +1,51 @@
+flowchart LR
+  subgraph External Actors
+    Reg[State Regulator Portal]
+    Customer[(End Customer)]
+  end
+
+  subgraph Org Roles
+    Grower[Grower]
+    Proc[Processor]
+    LabTech[Lab Tech]
+    QA[QA / Compliance Officer]
+    Inv[Inventory Manager]
+    Retail[Retail Associate]
+  end
+
+  subgraph Internal Systems
+    CC[Compliance Core (Your App)]
+    ERP[ERP / Seed-to-Sale]
+    LIMS[LIMS]
+    POS[Point of Sale]
+    ESG[Env/ESG Reporter]
+  end
+
+  subgraph Cross-Cutting
+    RBAC[RBAC]
+    AUD[Audit Logs]
+    CAPA[Deviation & CAPA]
+    SOP[Change Mgmt (SOPs)]
+    TRAIN[Training/Certs]
+    RULES[State Rule Engine]
+  end
+
+  Grower --> CC
+  Proc --> CC
+  LabTech --> LIMS
+  QA --> CC
+  Inv --> ERP
+  Retail --> POS
+  Reg --> CC
+
+  CC <---> ERP
+  CC <---> LIMS
+  CC <---> POS
+  CC --> ESG
+
+  CC -.uses.-> RBAC
+  CC -.emits.-> AUD
+  CC -.opens.-> CAPA
+  CC -.requires.-> SOP
+  CC -.checks.-> TRAIN
+  CC -.evaluates.-> RULES

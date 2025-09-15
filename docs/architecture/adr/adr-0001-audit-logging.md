@@ -1,4 +1,4 @@
-# ADR 001: Prioritize Audit Logging
+# ADR 0001: Prioritize Audit Logging
 
 Date: 2025-09-12  
 Status: Accepted  

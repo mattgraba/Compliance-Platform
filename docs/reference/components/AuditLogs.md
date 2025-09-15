@@ -1,4 +1,5 @@
-# AuditLogs Component
+# Audit Logs (Component)
+> How to use the audit log feature in our system.
 
 ## Purpose
 Provide a complete, immutable record of all significant actions.  

@@ -29,6 +29,7 @@
     "prisma": "^6.15.0"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.10.1",
     "husky": "^9.1.7"
   }
 }
