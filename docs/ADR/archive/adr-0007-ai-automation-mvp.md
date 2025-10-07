@@ -1,7 +1,7 @@
-# ADR 0003: AI Automation MVP (Single Log Analysis)
+# ADR 0007: AI Automation MVP (Single Log Analysis)
 
 Date: 2025-09-15  
-Status: Accepted  
+Status: Archived  
 
 ## Context
 Phase 1 of AI Automation is focused on extending the Audit Logs system.  
